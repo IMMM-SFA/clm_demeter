@@ -70,7 +70,7 @@ class GcamLandclassSplit:
             df = pd.read_csv(self.observed_file, usecols=cols)
         except ValueError:
             print("One of the target projected landclasses '{}' in projected data is not in the observed data.".format(cols))
-            print("Passing landclass.")
+            print("Unable to modify land class.")
             return None, None
 
         # get total amount of observed landclasses in each subregion
