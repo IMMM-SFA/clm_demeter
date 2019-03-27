@@ -1,6 +1,12 @@
 import pandas as pd
 
 
+__author__ = 'Chris R. Vernon'
+__email__ = 'chris.vernon@pnnl.gov'
+__copyright__ = 'Copyright (c) 2017, Battelle Memorial Institute'
+__license__ = 'BSD 2-Clause'
+
+
 def reclass_spatial_allocation(spatial_allocation_file, out_spatial_allocation_file):
     """Reclassify the spatial allocation file for Demeter to 1:1 land class relationships
     for Demeter. Using the output of this functions assumes that the user has already
