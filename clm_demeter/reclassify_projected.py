@@ -118,7 +118,20 @@ class GcamLandclassSplit:
 
         # if the target field from the projected data is not in the observed data, return as-is
         if obs_df is None:
+
             prj_df.to_csv(self.out_file, index=False)
+
+            # if there is more than 1 land class, return as-is; else, rename land class and return
+            if len(self.observed_landclasses) > 1:
+                return prj_df
+
+            else:
+                prj_df[GcamLandclassSplit.PRJ_LANDCLASS_FIELD] = prj_df[GcamLandclassSplit.PRJ_LANDCLASS_FIELD].str.replace(
+                                                                    self.target_landclass, self.observed_landclasses[0])
+
+            if self.out_file is not None:
+                prj_df.to_csv(self.out_file, index=False)
+
             return prj_df
 
         # add region_metric field
@@ -238,36 +251,36 @@ def batch_process_split(projected_allocation_file, observed_baselayer_file, proj
         dem_lc_list = gcam_dict[gcam_lc]
 
         # pass 1 to 1 classes
-        if len(dem_lc_list) > 1:
+        # if len(dem_lc_list) > 1:
 
-            print("Disaggregating projected land class '{}' to '{}'".format(gcam_lc, dem_lc_list))
+        print("Disaggregating projected land class '{}' to '{}'".format(gcam_lc, dem_lc_list))
 
-            # pass file name if first iteration, else pass data frame
-            if index == 0:
-                g = GcamLandclassSplit(observed_baselayer_file,
-                                       projected_file,
-                                       gcam_lc,
-                                       dem_lc_list,
-                                       metric,
-                                       gcam_year_list,
-                                       out_file=None)
+        # pass file name if first iteration, else pass data frame
+        if index == 0:
+            g = GcamLandclassSplit(observed_baselayer_file,
+                                   projected_file,
+                                   gcam_lc,
+                                   dem_lc_list,
+                                   metric,
+                                   gcam_year_list,
+                                   out_file=None)
 
-            elif index == last_iteration:
-                GcamLandclassSplit(observed_baselayer_file,
+        elif index == last_iteration:
+            GcamLandclassSplit(observed_baselayer_file,
+                               g.df,
+                               gcam_lc,
+                               dem_lc_list,
+                               metric,
+                               gcam_year_list,
+                               out_file=out_projected_file)
+
+        else:
+            g = GcamLandclassSplit(observed_baselayer_file,
                                    g.df,
                                    gcam_lc,
                                    dem_lc_list,
                                    metric,
                                    gcam_year_list,
-                                   out_file=out_projected_file)
-
-            else:
-                g = GcamLandclassSplit(observed_baselayer_file,
-                                       g.df,
-                                       gcam_lc,
-                                       dem_lc_list,
-                                       metric,
-                                       gcam_year_list,
-                                       out_file=None)
+                                   out_file=None)
 
     return g.df
