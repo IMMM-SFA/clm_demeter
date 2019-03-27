@@ -2,6 +2,12 @@ import numpy as np
 import pandas as pd
 
 
+__author__ = 'Chris R. Vernon'
+__email__ = 'chris.vernon@pnnl.gov'
+__copyright__ = 'Copyright (c) 2017, Battelle Memorial Institute'
+__license__ = 'BSD 2-Clause'
+
+
 class ReclassBaselayer:
     """Reclassify CLM PFTs in the baselayer for Demeter to Demeter final landcover classes.
 
