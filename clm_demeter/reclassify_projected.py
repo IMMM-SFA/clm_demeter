@@ -15,10 +15,11 @@ class GcamLandclassSplit:
     sparse) per subregion.  The new file becomes what is referenced as the projected file in Demeter.
 
     :param observed_file:               Full path with file name and extension of the observed data file to be used in the
-                                        Demeter run.
+                                        Demeter run. Optionally pass a Pandas Data Frame.
 
     :param projected_file:              Full path with file name and extension of the projected data file that has been
                                         extracted from a GCAM output database for use with Demeter.
+                                        Optionally pass a Pandas Data Frame.
 
     :param target_landclass:            Name of the landclass from the projected file to split (e.g. RockIceDesert).
 
@@ -66,12 +67,25 @@ class GcamLandclassSplit:
         cols = [GcamLandclassSplit.REGION_ID_FIELD, self.metric]
         cols.extend(self.observed_landclasses)
 
-        try:
-            df = pd.read_csv(self.observed_file, usecols=cols)
-        except ValueError:
-            print("One of the target projected landclasses '{}' in projected data is not in the observed data.".format(cols))
-            print("Unable to modify land class.")
-            return None, None
+        err_msg = "WARNING: One of the target projected landclasses '{}' in projected data is not in the observed data."
+
+        if type(self.observed_file) == pd.core.frame.DataFrame:
+            # get a list of expected land classes not in the observed file
+            ck = [i for i in self.observed_landclasses if i not in self.observed_file.columns]
+
+            if len(ck) > 0:
+                print(err_msg.format(ck))
+                return None, None
+
+            else:
+                df = self.observed_file[cols].copy()
+
+        else:
+            try:
+                df = pd.read_csv(self.observed_file, usecols=cols)
+            except ValueError:
+                print(err_msg.format(cols))
+                return None, None
 
         # get total amount of observed landclasses in each subregion
         gdf = df.groupby([GcamLandclassSplit.REGION_ID_FIELD, self.metric]).sum(axis=1)
@@ -126,8 +140,9 @@ class GcamLandclassSplit:
                 return prj_df
 
             else:
-                prj_df[GcamLandclassSplit.PRJ_LANDCLASS_FIELD] = prj_df[GcamLandclassSplit.PRJ_LANDCLASS_FIELD].str.replace(
-                                                                    self.target_landclass, self.observed_landclasses[0])
+                prj_df[GcamLandclassSplit.PRJ_LANDCLASS_FIELD] = prj_df[
+                    GcamLandclassSplit.PRJ_LANDCLASS_FIELD].str.replace(
+                    self.target_landclass, self.observed_landclasses[0])
 
             if self.out_file is not None:
                 prj_df.to_csv(self.out_file, index=False)
@@ -244,7 +259,7 @@ def batch_process_split(projected_allocation_file, observed_baselayer_file, proj
     """
     gcam_dict = gcam_to_demeter_lc_dict(projected_allocation_file)
 
-    last_iteration = len(gcam_dict.keys())-1
+    last_iteration = len(gcam_dict.keys()) - 1
 
     for index, gcam_lc in enumerate(gcam_dict.keys()):
 
