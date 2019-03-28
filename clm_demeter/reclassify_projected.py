@@ -250,9 +250,6 @@ def batch_process_split(projected_allocation_file, observed_baselayer_file, proj
 
         dem_lc_list = gcam_dict[gcam_lc]
 
-        # pass 1 to 1 classes
-        # if len(dem_lc_list) > 1:
-
         print("Disaggregating projected land class '{}' to '{}'".format(gcam_lc, dem_lc_list))
 
         # pass file name if first iteration, else pass data frame
