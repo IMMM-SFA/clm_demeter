@@ -81,7 +81,8 @@ def reclass_projected_allocation(projected_data_file, projected_allocation_file,
         for index, lc in enumerate(dem_lcs):
 
             if lc not in proj_lcs:
-                print("Demeter land class '{}' not in projected data file.".format(lc))
+                print("Demeter land class '{}' not in projected data file. Will not be allocated.".format(lc))
+                continue
 
             # copy alloc list and target lcs value to 1
             lx = alloc_list.copy()
