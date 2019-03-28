@@ -7,7 +7,7 @@ __copyright__ = 'Copyright (c) 2017, Battelle Memorial Institute'
 __license__ = 'BSD 2-Clause'
 
 
-def reclass_spatial_allocation(spatial_allocation_file, out_spatial_allocation_file):
+def reclass_spatial_allocation(spatial_allocation_file, out_spatial_allocation_file, reclassified_baselayer_file):
     """Reclassify the spatial allocation file for Demeter to 1:1 land class relationships
     for Demeter. Using the output of this functions assumes that the user has already
     created a reclassified base layer.
@@ -19,11 +19,23 @@ def reclass_spatial_allocation(spatial_allocation_file, out_spatial_allocation_f
     :param out_spat_allocation_file:    Full path with file name and extension for the reclassified spatial allocation
                                         file.
 
+    :param reclassified_baselayer_file: Full path with file name and extension to the reclassifed base layer.
+
     """
+    df = pd.read_csv(reclassified_baselayer_file)
+
     base_alloc = pd.read_csv(spatial_allocation_file)
 
     # get a list of Demeter final land classes
     dem_lcs = base_alloc.columns[1:].tolist()
+
+    # get a list of and report any missing expected land classes that should be in the base layer
+    missing_lcs = []
+    for lc in dem_lcs:
+        if lc not in df.columns:
+            print("Missing land class in spatial base data:  {}".format(lc))
+            print("WARNING: '{}' will be excluded from the allocation file.".format(lc))
+            missing_lcs.append(lc)
 
     # create list of zeros to populate allocation
     alloc_list = ['0'] * len(dem_lcs)
@@ -33,11 +45,13 @@ def reclass_spatial_allocation(spatial_allocation_file, out_spatial_allocation_f
         out.write('{}\n'.format(','.join(base_alloc.columns)))
 
         for index, lc in enumerate(dem_lcs):
-            # copy alloc list and target lcs value to 1
-            lx = alloc_list.copy()
-            lx[index] = '1'
 
-            out.write('{0},{1}\n'.format(dem_lcs[index], ','.join(lx)))
+            if lc not in missing_lcs:
+                # copy alloc list and target lcs value to 1
+                lx = alloc_list.copy()
+                lx[index] = '1'
+
+                out.write('{0},{1}\n'.format(dem_lcs[index], ','.join(lx)))
 
     return
 
