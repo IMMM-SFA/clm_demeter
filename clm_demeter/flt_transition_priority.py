@@ -185,10 +185,10 @@ class FLTTransitionPriorities:
         trans_prior = tmp.argsort(axis=1).argsort(axis=1)
         
         # Convert numpy array to pandas dataframe for writing
-        flt_names = ['forest', 'shrub', 'grass', 'crops', 'urban', 'snow', 'sparse']
+        flt_names = ['Forest', 'Shrub', 'Grass', 'Crop', 'Urban', 'Snow', 'Sparse']
         df = pd.DataFrame(trans_prior, index=flt_names, columns=flt_names)
 
         # Write data in csv files
-        df.to_csv('transition_priority.csv', index=True, header=True, sep=',')
+        df.to_csv('transition_priority_FLTs.csv', index=True, header=True, sep=',')
 
         return (trans_prior)
