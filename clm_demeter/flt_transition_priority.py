@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 import numpy.ma as ma           # masked array module
 from netCDF4 import Dataset     # to work with NetCDF files
-import os                       # operating system interface
 
 __author__ = 'Min Chen and Eva Sinha'
 __email__  = 'min.chen@pnnl.gov and eva.sinha@pnnl.gov'
@@ -138,7 +137,8 @@ class FLTTransitionPriorities:
             
         return (lccs)
     
-    def count_transition_cells(self, lccs_t1, lccs_t2, val_1, val_2):
+    @staticmethod
+    def count_transition_cells(lccs_t1, lccs_t2, val_1, val_2):
         """Count number of grid cells where land class changes from val_1 to val_2
         :param: lccs_t1:      ESACCI land class array at time = T
         
