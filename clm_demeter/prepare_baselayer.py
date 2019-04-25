@@ -1,41 +1,11 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt # to generate plots
 from netCDF4 import Dataset     # to work with NetCDF files
-import os                       # operating system interface
 from scipy.interpolate import griddata
 
 __author__ = 'Min Chen and Eva Sinha'
 __email__ = 'min.chen@pnnl.gov and eva.sinha@pnnl.gov'
 __copyright__ = 'Copyright (c) 2017, Battelle Memorial Institute'
-
-def interpolate_coarse_fine(data, coarse_grid_coord, fine_grid_coord, variable, latitude="latitude", longitude="longitude"):
-    """ Interpolate values of variable from coarse grid to fine grid
-    :param data:             subset(only land cells) of coarse grid coordinates along with values for variable
-    
-    :param coarse_grid_coord pandas dataframe containing latitude and longitude coordinate of coarse grid
-    
-    :param fine_grid_coord   pandas dataframe containing latitude and longitude coordinate of fine grid
-  
-    :param variable:         variable for interpolation to fine grid
-    
-    :param latitude:         variable for saving latitude values
-        
-    :param longitude:        variable for saving longitude values
-    
-    :return                  value of the variable interpolated to the fine grid resolution
-    """
-    # Join the subset grid coordinate data with full coordinate data
-    coarse_grid_data = pd.merge(coarse_grid_coord, data, how='left')
-
-    # Interpolate from coarse grid to finer resolution grid. 
-    # Convert dataframe to ndarray for method='nearest' to work
-    data_fine = griddata(points=coarse_grid_data[[latitude, longitude]].values, 
-                         values=coarse_grid_data[variable].values, 
-                         xi=fine_grid_coord.values, 
-                         method='nearest')
-    
-    return data_fine
 
 class PrepareBaselayer:
     """Generate CLM base layer for plant fuctional types
@@ -53,6 +23,9 @@ class PrepareBaselayer:
     
     :method read_lu_nutavail_soilqual                Read ESACCI landuse, nutrient availability, 
                                                      and soil quality file
+                                                     
+    :method interpolate_coarse_fine                  Interpolate values of variable from coarse grid to fine grid
+
     
     :method convert_lu_nutavail_soilqual_fine_grid   Interpolate landuse, nutrient availability, 
                                                      and soil quality data from coarse grid to fine grid
@@ -75,10 +48,10 @@ class PrepareBaselayer:
                                                                            lat_xy_var='LATIXY', 
                                                                            lon_xy_var='LONGXY',
                                                                            landmask_var='LANDMASK', 
-                                                                           pft_var='PCT_PFT'):
+                                                                           pft_var='PCT_PFT')
         
         # Convert baselayer to dataframe format
-        self.pft_df = self.convert_baselayer_to_dataframe(latitude="latitude", longitude="longitude"):
+        self.pft_df = self.convert_baselayer_to_dataframe(latitude="latitude", longitude="longitude")
 
         # Read ESACCI landuse, nutrient availability, and soil quality file
         self.lu_nv_sn = self.read_lu_nutavail_soilqual()
@@ -108,12 +81,6 @@ class PrepareBaselayer:
         
         :return                  return numpy array for pft, latitude, longitude, and FID 
         """
-        
-        #project_dir = '/pic/projects/im3/lulc_thrust_area/minchen/Demeter_0.05deg_trial/Demeter_0.05deg_trial'
-
-        # Base layer file for Plant Function Type (PFT)
-        # baselayer_pft_file = os.path.join(project_dir, 'mksrf_78pft_landuse_rc2000_c130927.nc')
-        # baselayer_pft_file = 'mksrf_78pft_landuse_rc2000_c130927.nc'
 
         # Open netCDF file
         dataset = Dataset(self.orig_baselayer_netcdf_file, mode='r') # file handle, open in read only mode
@@ -145,8 +112,6 @@ class PrepareBaselayer:
         pft = pft * delta_lat * delta_lon * per_to_frac; # unit conversion
 
         # Generating land see mask
-        # pft_tot = np.sum(pft, axis=0) # Sum values for all PFTs
-        # landmask = (pft_tot > 0)      # identify land grid cells
         landmask[(lat <= -55), :] = 0;   # assigning 0 to Antartica [lat less than -55] grid cells
 
         # Reshape to convert lat lon 2D array values to 1 dimension
@@ -187,7 +152,7 @@ class PrepareBaselayer:
         """
         
         # Generate PFT column names
-        PFT_names = ['PFT'+ str(x) for x in range(1, self.pft.shape[1] + 1)]
+        PFT_names = ['PFT'+ str(x) for x in range(1, self.pft.shape[1] + 1 - len((latitude, longitude, 'FID')))]
         PFT_names = np.hstack((latitude, longitude, PFT_names, 'FID'))
         
         # Convert pft numpy array to pandas dataframe
@@ -220,6 +185,33 @@ class PrepareBaselayer:
         
         return lu_nv_sn
 
+    def interpolate_coarse_fine(self, coarse_grid_coord, fine_grid_coord, variable, latitude="latitude", longitude="longitude"):
+        """ Interpolate values of variable from coarse grid to fine grid
+        :param data:             subset(only land cells) of coarse grid coordinates along with values for variable
+        
+        :param coarse_grid_coord pandas dataframe containing latitude and longitude coordinate of coarse grid
+        
+        :param fine_grid_coord   pandas dataframe containing latitude and longitude coordinate of fine grid
+        
+        :param variable:         variable for interpolation to fine grid
+        
+        :param latitude:         variable for saving latitude values
+        
+        :param longitude:        variable for saving longitude values
+        
+        :return                  value of the variable interpolated to the fine grid resolution
+        """
+        # Join the subset grid coordinate data with full coordinate data
+        coarse_grid_data = pd.merge(coarse_grid_coord, self.lu_nv_sn, how='left')
+    
+        # Interpolate from coarse grid to finer resolution grid.
+        # Convert dataframe to ndarray for method='nearest' to work
+        data_fine = griddata(points=coarse_grid_data[[latitude, longitude]].values,
+                             values=coarse_grid_data[variable].values,
+                             xi=fine_grid_coord.values,
+                             method='nearest')
+        return data_fine
+                         
     def convert_lu_nutavail_soilqual_fine_grid(self, latitude="Latcoord", longitude="Loncoord"):
         """ Interpolate landuse, nutrient availability, and soil quality data
             from coarse grid to fine grid
@@ -248,10 +240,10 @@ class PrepareBaselayer:
         coarse_grid_coord = pd.DataFrame({latitude:lat_xy_coarse, longitude:lon_xy_coarse})
 
         # Interpolate values of variable from coarse grid to fine grid using nearest neigbor
-        nv_fine = interpolate_coarse_fine(self.lu_nv_sn, coarse_grid_coord, fine_grid_coord, 'nv', latitude, longitude)
-        sn_fine = interpolate_coarse_fine(self.lu_nv_sn, coarse_grid_coord, fine_grid_coord, 'sn', latitude, longitude)
-        aez_id_fine = interpolate_coarse_fine(self.lu_nv_sn, coarse_grid_coord, fine_grid_coord, 'aez_id', latitude, longitude)
-        region_id_fine = interpolate_coarse_fine(self.lu_nv_sn, coarse_grid_coord, fine_grid_coord, 'region_id', latitude, longitude)
+        nv_fine = self.interpolate_coarse_fine(coarse_grid_coord, fine_grid_coord, 'nv', latitude, longitude)
+        sn_fine = self.interpolate_coarse_fine(coarse_grid_coord, fine_grid_coord, 'sn', latitude, longitude)
+        aez_id_fine = self.interpolate_coarse_fine(coarse_grid_coord, fine_grid_coord, 'aez_id', latitude, longitude)
+        region_id_fine = self.interpolate_coarse_fine(coarse_grid_coord, fine_grid_coord, 'region_id', latitude, longitude)
 
         # Create dataframe containing FID, lon, lat, nut. avail., soil quality, regionAEZ,regionID, AEZID
         reg_aez_fine = region_id_fine*100 + aez_id_fine
@@ -274,13 +266,6 @@ class PrepareBaselayer:
 
         # Add OBJECTID
         pft_lu_nv_sn = pft_lu_nv_sn.assign(OBJECTID = np.arange(1, pft_lu_nv_sn.shape[0] + 1, 1))
-
-        # The lines below for changing type to integer do not work since there are NaN values in few rows
-        # Change data type for FID, regAEZ, region_id, and aez_id
-        #pft_lu_nv_sn.FID = pft_lu_nv_sn.FID.astype('int64')
-        #pft_lu_nv_sn.regAEZ = pft_lu_nv_sn.regAEZ.astype('int64')
-        #pft_lu_nv_sn.region_id = pft_lu_nv_sn.region_id.astype('int64')
-        #pft_lu_nv_sn.aez_id = pft_lu_nv_sn.aez_id.astype('int64')
 
         # Write data in csv files
         nv_df = pft_lu_nv_sn[['FID', 'nv']]                             # Subset nutrient availability data
